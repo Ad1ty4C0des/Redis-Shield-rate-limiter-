@@ -1,0 +1,26 @@
+{
+  "name": "redis-shield",
+  "version": "1.0.0",
+  "description": "Distributed Rate Limiting Engine with Redis Hashes, Lua, and RBAC",
+  "main": "server/src/server.js",
+  "scripts": {
+    "dev": "node --watch server/src/server.js",
+    "start": "node server/src/server.js",
+    "build": "cd client && npm install && npm run build"
+  },
+  "keywords": [
+    "redis",
+    "rate-limiter",
+    "api",
+    "middleware",
+    "rbac"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "ioredis": "^5.4.2",
+    "ws": "^8.22.0"
+  }
+}

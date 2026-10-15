@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" id="faviconLink" href="/logo-dark.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Redis Shield - Distributed Rate Limiting Engine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Geist', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            },
+            colors: {
+              brand: {
+                50: '#f0f9ff',
+                100: '#e0f2fe',
+                200: '#bae6fd',
+                500: '#0ea5e9',
+                600: '#0284c7',
+                700: '#0369a1',
+              },
+              obsidian: {
+                DEFAULT: '#0b0d12',
+                surface: '#11141c',
+                elevated: '#151922',
+                panel: '#181d28',
+                hover: '#1e2432',
+                border: 'rgba(255, 255, 255, 0.07)'
+              },
+              cyan: {
+                400: '#38bdf8',
+                500: '#0ea5e9',
+                600: '#0284c7'
+              },
+              emerald: {
+                400: '#34d399',
+                500: '#10b981',
+                900: '#064e3b'
+              },
+              crimson: {
+                400: '#fb7185',
+                500: '#f43f5e',
+                600: '#e11d48',
+                950: '#4c0519'
+              },
+              amber: {
+                400: '#fbbf24',
+                500: '#f59e0b'
+              }
+            }
+          }
+        }
+      };
+    </script>
+  </head>
+  <body class="bg-[#f8fafc] dark:bg-[#0b0d12] font-sans text-slate-800 dark:text-zinc-300 antialiased selection:bg-sky-100 dark:selection:bg-cyan-500/20 selection:text-sky-800 dark:selection:text-cyan-200 min-h-screen flex flex-col">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
