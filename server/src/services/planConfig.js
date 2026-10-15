@@ -28,7 +28,7 @@ async function seedPlans() {
     const exists = await redis.exists(key);
     if (!exists) {
       await redis.hset(key, config);
-      console.log(`🌱 Seeded plan: ${planName}`);
+      console.log(`Seeded plan: ${planName}`);
     }
   }
 }
@@ -37,13 +37,24 @@ async function getPlan(planName) {
   const key = `${PLAN_PREFIX}${planName}`;
   const plan = await redis.hgetall(key);
 
+  // Self-healing: if plan deleted, restore from DEFAULT_PLANS
   if (!plan || Object.keys(plan).length === 0) {
+    if (DEFAULT_PLANS[planName]) {
+      const defaultConfig = DEFAULT_PLANS[planName];
+      await redis.hset(key, defaultConfig);
+      return {
+        name: planName,
+        maxRequests: Number(defaultConfig.maxRequests),
+        windowMs: Number(defaultConfig.windowMs),
+        algorithm: defaultConfig.algorithm,
+      };
+    }
     return null;
   } 
 
   return {
-    name : planName,
-    maxRequests : Number(plan.maxRequests),
+    name: planName,
+    maxRequests: Number(plan.maxRequests),
     windowMs: Number(plan.windowMs),
     algorithm: plan.algorithm,
   };
@@ -75,6 +86,5 @@ async function getAllPlans() {
   }
   return plans;
 }
-
 
 module.exports = { seedPlans, getPlan, updatePlan, getAllPlans };

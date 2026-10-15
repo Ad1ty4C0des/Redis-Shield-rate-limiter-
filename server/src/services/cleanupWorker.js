@@ -33,12 +33,28 @@ async function handleJob(job) {
   console.log(`⚙️ Processing job: ${job.type}`, job.payload);
 
   if (job.type === 'reset_ip') {
-    const { ip } = job.payload;
-    const deleted = await deleteKeysByPattern(`rl:*:${ip}*`);
+    const { ip, secondary } = job.payload;
+    const targets = [ip, secondary].filter(Boolean);
+    let totalDeleted = 0;
+
+    for (const target of targets) {
+      // CRITICAL: ONLY delete active rate limiting window/bucket keys!
+      // NEVER touch system keys like rl:keys:*, rl:plan:*, rl:analytics:*, or rl:stream:*
+      const patterns = [
+        `rl:fw:${target}*`,
+        `rl:sw:${target}*`,
+        `rl:tb:${target}*`,
+      ];
+
+      for (const pattern of patterns) {
+        totalDeleted += await deleteKeysByPattern(pattern);
+      }
+    }
+
     console.log(
-      deleted > 0 
-        ? `🧹 Cleaned up ${deleted} keys for IP: ${ip}`
-        : `ℹ️ No active keys found for IP: ${ip}`
+      totalDeleted > 0 
+        ? `🧹 Cleaned up ${totalDeleted} rate limit window keys for: ${targets.join(', ')}`
+        : `ℹ️ No active rate limit window keys found for: ${targets.join(', ')}`
     );
   }
 }

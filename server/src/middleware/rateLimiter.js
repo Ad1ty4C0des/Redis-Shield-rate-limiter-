@@ -24,7 +24,9 @@ function rateLimiter(options = {}) {
     const refillRate = clientPlanName === 'enterprise' ? 20 : (clientPlanName === 'pro' ? 5 : (options.refillRate || 1));
     const ttlSec = options.ttlSec || 60;
 
-    const identifier = req.user?.id || req.ip;
+    // Real client IP (extracted from X-Forwarded-For when behind Render/Cloudflare)
+    const clientIp = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket?.remoteAddress || req.ip || '127.0.0.1';
+    const identifier = req.user?.id || clientIp;
     const startHr = process.hrtime.bigint();
 
     let result;
@@ -47,12 +49,14 @@ function rateLimiter(options = {}) {
       allowed: result.allowed,
       algorithm,
       latencyMs: Number(latencyMs.toFixed(3)),
+      clientIp,
     };
 
     res.set({
       'X-Client-Role': req.user?.role || 'user',
       'X-Client-Plan': clientPlanName,
       'X-Client-Key': req.user?.key || 'anonymous',
+      'X-Client-IP': clientIp,
       'X-RateLimit-Limit': String(effectiveLimit),
       'X-RateLimit-Remaining': String(effectiveRemaining),
       'X-RateLimit-Latency-Ms': latencyMs.toFixed(3),
@@ -71,9 +75,22 @@ function rateLimiter(options = {}) {
     }
 
     res.set('Retry-After', Math.ceil(result.retryAfter / 1000));
-    logBlockedRequest({ ip: identifier, endpoint: req.originalUrl, algorithm });
-    publishBlockedEvent({ ip: identifier, endpoint: req.originalUrl, algorithm });
-    recordBlock({ ip: identifier, endpoint: req.originalUrl });
+    // Log real IP address along with persona key to Redis Streams and Pub/Sub!
+    logBlockedRequest({
+      ip: clientIp,
+      clientKey: req.user?.key || 'anonymous',
+      identifier,
+      endpoint: req.originalUrl,
+      algorithm,
+    });
+    publishBlockedEvent({
+      ip: clientIp,
+      clientKey: req.user?.key || 'anonymous',
+      identifier,
+      endpoint: req.originalUrl,
+      algorithm,
+    });
+    recordBlock({ ip: clientIp, endpoint: req.originalUrl });
 
     return res.status(429).json({
       error: 'too many requests',
@@ -82,6 +99,7 @@ function rateLimiter(options = {}) {
       quota: effectiveLimit,
       remaining: 0,
       role: req.user?.role || 'user',
+      clientIp,
     });
   };
 }

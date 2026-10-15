@@ -1311,32 +1311,49 @@ export default function App() {
                         <th className="py-2.5 px-3 font-semibold">Entry ID</th>
                         <th className="py-2.5 px-3 font-semibold">Timestamp</th>
                         <th className="py-2.5 px-3 font-semibold">Target Route</th>
-                        <th className="py-2.5 px-3 font-semibold">Client Identifier</th>
+                        <th className="py-2.5 px-3 font-semibold text-sky-600 dark:text-cyan-400">Client IP</th>
+                        <th className="py-2.5 px-3 font-semibold">Client Identity</th>
                         <th className="py-2.5 px-3 font-semibold">Engine Algorithm</th>
                         <th className="py-2.5 px-3 font-semibold text-right">Verdict</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-white/[0.03]">
                       {filteredLogs.length > 0 ? (
-                        filteredLogs.map((log, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
-                            <td className="py-2.5 px-3 text-[11px] text-sky-700 dark:text-cyan-400 font-semibold">{log.id || `179203-${idx}`}</td>
-                            <td className="py-2.5 px-3 text-[11px] text-slate-500 dark:text-zinc-400">
-                              {log.blockedAt ? new Date(log.blockedAt).toLocaleTimeString() : 'Recent'}
-                            </td>
-                            <td className="py-2.5 px-3 text-slate-900 dark:text-zinc-200 font-medium">{log.endpoint || '/api/data'}</td>
-                            <td className="py-2.5 px-3 text-slate-600 dark:text-zinc-400">{log.ip || '::1'}</td>
-                            <td className="py-2.5 px-3 text-slate-500 dark:text-zinc-400">{log.algorithm || 'fixed_window'}</td>
-                            <td className="py-2.5 px-3 text-right">
-                              <span className="text-[9px] font-bold text-rose-700 dark:text-crimson-400 bg-rose-50 dark:bg-crimson-500/10 border border-rose-200 dark:border-crimson-500/20 px-1.5 py-0.5 rounded">
-                                429 BLOCKED
-                              </span>
-                            </td>
-                          </tr>
-                        ))
+                        filteredLogs.map((log, idx) => {
+                          const isIpFormat = log.ip && (log.ip.includes('.') || log.ip.includes(':'));
+                          const displayIp = isIpFormat ? log.ip : (log.clientIp || '::1');
+                          const displayKey = log.clientKey || log.identifier || (!isIpFormat ? log.ip : 'anonymous');
+
+                          return (
+                            <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
+                              <td className="py-2.5 px-3 text-[11px] text-sky-700 dark:text-cyan-400 font-semibold">{log.id || `179203-${idx}`}</td>
+                              <td className="py-2.5 px-3 text-[11px] text-slate-500 dark:text-zinc-400">
+                                {log.blockedAt ? new Date(log.blockedAt).toLocaleTimeString() : 'Recent'}
+                              </td>
+                              <td className="py-2.5 px-3 text-slate-900 dark:text-zinc-200 font-medium">{log.endpoint || '/api/data'}</td>
+                              <td className="py-2.5 px-3 font-semibold text-slate-900 dark:text-zinc-100">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="material-symbols-outlined text-[13px] text-sky-500">lan</span>
+                                  <span className="font-mono text-xs">{displayIp}</span>
+                                </div>
+                              </td>
+                              <td className="py-2.5 px-3 text-slate-600 dark:text-zinc-400 text-[11px] font-mono">
+                                <span className="bg-slate-100 dark:bg-white/[0.04] px-1.5 py-0.5 rounded border border-slate-200 dark:border-white/[0.06]">
+                                  {displayKey}
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-3 text-slate-500 dark:text-zinc-400">{log.algorithm || 'fixed_window'}</td>
+                              <td className="py-2.5 px-3 text-right">
+                                <span className="text-[9px] font-bold text-rose-700 dark:text-crimson-400 bg-rose-50 dark:bg-crimson-500/10 border border-rose-200 dark:border-crimson-500/20 px-1.5 py-0.5 rounded">
+                                  429 BLOCKED
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
                       ) : (
                         <tr>
-                          <td colSpan="6" className="py-8 text-center text-xs text-slate-400 dark:text-zinc-500">
+                          <td colSpan="7" className="py-8 text-center text-xs text-slate-400 dark:text-zinc-500">
                             No matching stream audit logs found.
                           </td>
                         </tr>

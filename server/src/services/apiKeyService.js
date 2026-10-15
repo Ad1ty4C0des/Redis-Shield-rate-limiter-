@@ -47,9 +47,27 @@ async function getKeyData(apiKey) {
   if (!apiKey) return null;
   const redisKey = `${KEY_PREFIX}${apiKey}`;
   const data = await redis.hgetall(redisKey);
+
+  // Self-healing: if key not found in Redis, restore from DEFAULT_KEYS
   if (!data || Object.keys(data).length === 0) {
+    if (DEFAULT_KEYS[apiKey]) {
+      const defaultData = DEFAULT_KEYS[apiKey];
+      await redis.hset(redisKey, {
+        ...defaultData,
+        createdAt: new Date().toISOString(),
+      });
+      return {
+        key: apiKey,
+        role: defaultData.role || 'user',
+        plan: defaultData.plan || 'free',
+        name: defaultData.name || 'API Client',
+        description: defaultData.description || '',
+        createdAt: new Date().toISOString(),
+      };
+    }
     return null;
   }
+
   return {
     key: apiKey,
     role: data.role || 'user',

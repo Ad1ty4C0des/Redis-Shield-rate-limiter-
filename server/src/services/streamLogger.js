@@ -15,10 +15,9 @@ function logError(msg, err) {
   }
 }
 
-const clean = (v) => String(v ?? 'unknown').slice(0 , MAX_FIELD_LEN);
+const clean = (v) => String(v ?? 'unknown').slice(0, MAX_FIELD_LEN);
 
-async function logBlockedRequest({ip, endpoint, algorithm}) {
-
+async function logBlockedRequest({ ip, clientKey, identifier, endpoint, algorithm }) {
   const path = clean(endpoint).split('?')[0];
 
   return redis
@@ -27,20 +26,21 @@ async function logBlockedRequest({ip, endpoint, algorithm}) {
       'MAXLEN', '~', MAX_STREAM_LEN,
       '*',
       'ip', clean(ip),
+      'clientKey', clean(clientKey || identifier),
       'endpoint', path,
       'algorithm', clean(algorithm),
     )
-    .catch ((err) => {
+    .catch((err) => {
       logError('Stream log error', err);
       return null;
     });
 }
 
-async function getRecentBlocked({count = 50, before} = {}) {
+async function getRecentBlocked({ count = 50, before } = {}) {
   try {
     const limit = Math.min(Math.max(parseInt(count, 10) || 50, 1), MAX_READ);
     const end = before ? `(${before}` : '+';
-    
+
     const entries = await redis.xrevrange(STREAM_KEY, end, '-', 'COUNT', limit);
 
     const items = entries.map(([id, fields]) => {
@@ -61,7 +61,6 @@ async function getRecentBlocked({count = 50, before} = {}) {
     logError('Stream read error', err);
     return { items: [], nextCursor: null };
   }
-  
-} 
+}
 
 module.exports = { logBlockedRequest, getRecentBlocked };
