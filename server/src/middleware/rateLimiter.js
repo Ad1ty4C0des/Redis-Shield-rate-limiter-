@@ -5,6 +5,7 @@ const { logBlockedRequest } = require('../services/streamLogger');
 const { publishBlockedEvent } = require('../services/eventPublisher');
 const { recordBlock, recordRequest } = require('../services/analytics');
 const { getPlan } = require('../services/planConfig');
+const { redis } = require('../config/redis');
 
 function rateLimiter(options = {}) {
   return async (req, res, next) => {
@@ -28,6 +29,14 @@ function rateLimiter(options = {}) {
     const clientIp = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket?.remoteAddress || req.ip || '127.0.0.1';
     const identifier = req.user?.id || clientIp;
     const startHr = process.hrtime.bigint();
+
+    // Link IP <-> API Key in Redis so resetting either one unblocks both!
+    if (clientIp && identifier && clientIp !== identifier) {
+      redis.sadd(`rl:ip_map:${clientIp}`, identifier).catch(() => {});
+      redis.expire(`rl:ip_map:${clientIp}`, 86400).catch(() => {});
+      redis.sadd(`rl:key_ips:${identifier}`, clientIp).catch(() => {});
+      redis.expire(`rl:key_ips:${identifier}`, 86400).catch(() => {});
+    }
 
     let result;
     if (algorithm === 'sliding') {

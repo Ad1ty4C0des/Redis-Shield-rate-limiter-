@@ -34,16 +34,43 @@ async function handleJob(job) {
 
   if (job.type === 'reset_ip') {
     const { ip, secondary } = job.payload;
-    const targets = [ip, secondary].filter(Boolean);
-    let totalDeleted = 0;
+    const inputTargets = [ip, secondary].filter(Boolean);
+    const allTargets = new Set(inputTargets);
 
-    for (const target of targets) {
-      // CRITICAL: ONLY delete active rate limiting window/bucket keys!
-      // NEVER touch system keys like rl:keys:*, rl:plan:*, rl:analytics:*, or rl:stream:*
+    for (const target of inputTargets) {
+      // 1. Resolve dynamic IP <-> API Key mappings in Redis
+      const mappedKeys = await redis.smembers(`rl:ip_map:${target}`).catch(() => []);
+      mappedKeys.forEach((k) => allTargets.add(k));
+
+      const mappedIps = await redis.smembers(`rl:key_ips:${target}`).catch(() => []);
+      mappedIps.forEach((i) => allTargets.add(i));
+
+      // 2. Also check recent blocked stream entries for IP <-> Key linkage
+      const recentStream = await redis.xrevrange('rl:stream:blocked', '+', '-', 'COUNT', 50).catch(() => []);
+      for (const [, fields] of recentStream) {
+        let streamIp = '';
+        let streamKey = '';
+        for (let i = 0; i < fields.length; i += 2) {
+          if (fields[i] === 'ip') streamIp = fields[i + 1];
+          if (fields[i] === 'clientKey' || fields[i] === 'identifier') streamKey = fields[i + 1];
+        }
+        if (streamIp === target && streamKey) {
+          allTargets.add(streamKey);
+        }
+        if (streamKey === target && streamIp) {
+          allTargets.add(streamIp);
+        }
+      }
+    }
+
+    let totalDeleted = 0;
+    for (const target of allTargets) {
+      // ONLY delete rate limiting active window keys (Fixed, Sliding, Token Bucket)
+      // NEVER touch rl:keys:*, rl:plan:*, rl:analytics:*, rl:stats:*, or rl:stream:*
       const patterns = [
-        `rl:fw:${target}*`,
-        `rl:sw:${target}*`,
-        `rl:tb:${target}*`,
+        `rl:fw:*${target}*`,
+        `rl:sw:*${target}*`,
+        `rl:tb:*${target}*`,
       ];
 
       for (const pattern of patterns) {
@@ -53,8 +80,8 @@ async function handleJob(job) {
 
     console.log(
       totalDeleted > 0 
-        ? `🧹 Cleaned up ${totalDeleted} rate limit window keys for: ${targets.join(', ')}`
-        : `ℹ️ No active rate limit window keys found for: ${targets.join(', ')}`
+        ? `🧹 Cleaned up ${totalDeleted} rate limit window keys for: ${Array.from(allTargets).join(', ')}`
+        : `ℹ️ No active rate limit window keys found for: ${Array.from(allTargets).join(', ')}`
     );
   }
 }
