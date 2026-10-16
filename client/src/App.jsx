@@ -82,6 +82,20 @@ const NAV_ITEMS = [
   { id: 'security', label: 'Security Mitigation', icon: 'gshield' },
 ];
 
+function getPersonaQuota(p, plans) {
+  const planConfig = plans?.[p?.plan];
+  if (!planConfig) return p?.limitDesc || '5 req / min';
+
+  const maxReq = planConfig.maxRequests ?? 5;
+  const windowSec = planConfig.windowMs ? Math.round(planConfig.windowMs / 1000) : 60;
+  const windowLabel = windowSec === 60 ? 'min' : windowSec >= 60 ? `${Math.round(windowSec / 60)}m` : `${windowSec}s`;
+
+  if (p.role === 'admin') {
+    return `Admin Access + ${maxReq} req / ${windowLabel}`;
+  }
+  return `${maxReq} req / ${windowLabel}`;
+}
+
 function formatUptime(sec) {
   if (!sec) return '0m';
   const m = Math.floor(sec / 60);
@@ -505,7 +519,7 @@ export default function App() {
                               </span>
                             </div>
                             <span className="text-[10px] text-slate-400 dark:text-zinc-500 truncate">
-                              <code className="text-slate-600 dark:text-zinc-400 font-semibold">{p.key}</code> • {p.limitDesc}
+                              <code className="text-slate-600 dark:text-zinc-400 font-semibold">{p.key}</code> • {getPersonaQuota(p, plans)}
                             </span>
                           </div>
                         </div>
@@ -622,7 +636,7 @@ export default function App() {
                   Key: <code className="text-sky-700 dark:text-cyan-400">{activePersona.key}</code>
                 </span>
                 <span className="text-[10px] font-mono text-slate-500 dark:text-zinc-500">
-                  Quota: {activePersona.limitDesc}
+                  Quota: {getPersonaQuota(activePersona, plans)}
                 </span>
               </div>
             </div>
@@ -951,7 +965,7 @@ export default function App() {
 
                           <div className="pt-1 border-t border-slate-200/50 dark:border-white/[0.05] flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-zinc-400">
                             <span>Quota:</span>
-                            <span className="font-semibold text-slate-700 dark:text-zinc-300">{p.limitDesc}</span>
+                            <span className="font-semibold text-slate-700 dark:text-zinc-300">{getPersonaQuota(p, plans)}</span>
                           </div>
                         </button>
                       );
