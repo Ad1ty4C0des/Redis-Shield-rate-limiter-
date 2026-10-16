@@ -25,3 +25,7 @@ pnpm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+ 
+# Local appliances and documentation
+redis admin and plan config appliance*
+redis_admin_and_plan_config_appliance*
